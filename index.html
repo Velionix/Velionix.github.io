@@ -1,62 +1,339 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无法退出的网页</title>
+    <title>Kimi AI 智能对话系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
         body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: var(--text-color);
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+        .chat-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        #connection-status {
+            font-size: 0.9em;
+        }
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .ai-message {
+            background-color: var(--secondary-color);
+            align-self: flex-start;
+        }
+        .chat-input-container {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        #send-button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .typing-indicator {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            height: 30px;
         }
-        #container {
-            text-align: center;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        .dot {
+            background-color: #999;
+            border-radius: 50%;
+            width: 8px;
+            height: 8px;
+            margin: 0 3px;
+            animation: bounce 1.3s linear infinite;
         }
-        #message {
-            font-size: 20px;
-            margin-bottom: 20px;
+        .dot:nth-child(2) {
+            animation-delay: -1.1s;
         }
-        #button {
-            font-size: 18px;
-            padding: 10px 20px;
+        .dot:nth-child(3) {
+            animation-delay: -0.9s;
+        }
+        @keyframes bounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-5px);
+            }
+        }
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 5px 10px;
+            background-color: var(--primary-color);
+            color: white;
             border: none;
-            border-radius: 5px;
-            background-color: #007bff;
-            color: #fff;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 0.8em;
+        }
+        pre {
+            position: relative;
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .error-message {
+            color: var(--error-color);
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        <div id="message">你现在无法离开这个页面！</div>
-        <button id="button" onclick="escapePage()">我投降</button>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Kimi AI 智能对话系统</h1>
+            <div id="connection-status">已连接</div>
+        </div>
+        <div id="chat-messages"></div>
+        <div class="chat-input-container">
+            <input type="text" id="user-input" placeholder="输入您的消息...">
+            <button id="send-button">发送</button>
+        </div>
     </div>
 
     <script>
-        // 模拟无法退出效果
-        function preventNavigation() {
-            window.onbeforeunload = function() {
-                return '确定离开这个页面吗？';
-            };
+        const API_KEY = 'sk-KB5QwllTSuhUnfMbYsVd53BpeQT67abXNFsU4iHxPkq0NqtF';
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const connectionStatus = document.getElementById('connection-status');
+        let isWaitingForResponse = false;
+
+        marked.setOptions({
+            highlight: function (code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-'
+        });
+
+        function updateConnectionStatus(isConnected) {
+            connectionStatus.innerHTML = isConnected ? '<i class="fas fa-plug"></i> 已连接' : '<i class="fas fa-plug-circle-exclamation"></i> 未连接';
+            connectionStatus.style.color = isConnected ? 'var(--success-color)' : 'var(--error-color)';
         }
 
-        function escapePage() {
-            window.onbeforeunload = null;
-            window.location.href = 'about:blank'; // 通过重定向到空白页面来模拟退出
+        function createMessageElement(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', isUser ? 'user-message' : 'ai-message');
+            return messageDiv;
         }
 
-        // 启用模拟无法退出效果
-        preventNavigation();
+        function addMessage(content, isUser = false) {
+            const messageDiv = createMessageElement(content, isUser);
+            if (isUser) {
+                messageDiv.textContent = content;
+            } else {
+                messageDiv.innerHTML = marked.parse(content);
+                addCopyButtonsToCodeBlocks(messageDiv);
+            }
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addCopyButtonsToCodeBlocks(messageDiv) {
+            const codeBlocks = messageDiv.querySelectorAll('pre code');
+            codeBlocks.forEach((codeBlock, index) => {
+                const pre = codeBlock.parentNode;
+                const copyButton = document.createElement('button');
+                copyButton.textContent = '复制';
+                copyButton.className = 'copy-button';
+                copyButton.onclick = () => copyCode(codeBlock, copyButton);
+                pre.appendChild(copyButton);
+            });
+        }
+
+        function copyCode(codeBlock, button) {
+            const code = codeBlock.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '已复制!';
+                setTimeout(() => {
+                    button.textContent = '复制';
+                }, 2000);
+            }, (err) => {
+                console.error('无法复制代码: ', err);
+                button.textContent = '复制失败';
+            });
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.classList.add('typing-indicator');
+            typingDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = chatMessages.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function showErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.classList.add('error-message');
+            errorDiv.textContent = message;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message && !isWaitingForResponse) {
+                addMessage(message, true);
+                userInput.value = '';
+                isWaitingForResponse = true;
+                showTypingIndicator();
+                updateConnectionStatus(true);
+
+                try {
+                    const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: 'moonshot-v1-8k',
+                            messages: [{role: 'user', content: message}],
+                            stream: true
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let aiResponse = '';
+                    let aiMessageElement = null;
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (line.trim() === 'data: [DONE]') {
+                                console.log('Stream completed');
+                                continue;
+                            }
+                            if (line.startsWith('data:')) {
+                                try {
+                                    const jsonData = JSON.parse(line.slice(5));
+                                    if (jsonData.choices && jsonData.choices[0].delta.content) {
+                                        aiResponse += jsonData.choices[0].delta.content;
+                                        if (!aiMessageElement) {
+                                            hideTypingIndicator();
+                                            aiMessageElement = createMessageElement(aiResponse, false);
+                                            chatMessages.appendChild(aiMessageElement);
+                                        }
+                                        aiMessageElement.innerHTML = marked.parse(aiResponse);
+                                        addCopyButtonsToCodeBlocks(aiMessageElement);
+                                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                                    }
+                                } catch (error) {
+                                    console.error('Error parsing JSON:', error, 'Line:', line);
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showErrorMessage('抱歉，发生了错误。请稍后再试。');
+                    updateConnectionStatus(false);
+                } finally {
+                    hideTypingIndicator();
+                    isWaitingForResponse = false;
+                }
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 初始欢迎消息
+        addMessage('欢迎使用 Kimi AI 智能对话系统！我是您的AI助手，有什么可以帮助您的吗？', false);
     </script>
 </body>
-  </html>
+    </html>
