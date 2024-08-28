@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无法退出的网页</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #message {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        #button {
+            font-size: 18px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="message">你现在无法离开这个页面！</div>
+        <button id="button" onclick="escapePage()">我投降</button>
+    </div>
+
+    <script>
+        // 模拟无法退出效果
+        function preventNavigation() {
+            window.onbeforeunload = function() {
+                return '确定离开这个页面吗？';
+            };
+        }
+
+        function escapePage() {
+            window.onbeforeunload = null;
+            window.location.href = 'about:blank'; // 通过重定向到空白页面来模拟退出
+        }
+
+        // 启用模拟无法退出效果
+        preventNavigation();
+    </script>
+</body>
+  </html>
